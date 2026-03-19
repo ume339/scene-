@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>春のアクションゲームDX</title>
+<style>
+  body{margin:0;overflow:hidden;background:linear-gradient(#87cefa,#e0ffff);} 
+  canvas{display:block;margin:0 auto;background:#bde0fe;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+canvas.width=900;canvas.height=400;
+
+let worldWidth=2000;
+let cameraX=0;
+
+let player={x:50,y:300,w:32,h:32,dx:0,dy:0,speed:3,jump:-11,gravity:0.5,onGround:false,score:0};
+
+let platforms=[
+ {x:0,y:360,w:2000,h:40},
+ {x:200,y:300,w:120,h:20},
+ {x:400,y:260,w:120,h:20},
+ {x:650,y:220,w:120,h:20},
+ {x:900,y:280,w:150,h:20},
+ {x:1200,y:240,w:150,h:20},
+ {x:1500,y:200,w:120,h:20}
+];
+
+let coins=[
+ {x:230,y:260,taken:false},
+ {x:430,y:220,taken:false},
+ {x:680,y:180,taken:false},
+ {x:930,y:240,taken:false},
+ {x:1250,y:200,taken:false}
+];
+
+let enemies=[
+ {x:500,y:330,w:30,h:30,dir:1},
+ {x:1100,y:330,w:30,h:30,dir:-1}
+];
+
+let goal={x:1800,y:300,w:40,h:60};
+
+let keys={};
+document.addEventListener("keydown",e=>keys[e.code]=true);
+document.addEventListener("keyup",e=>keys[e.code]=false);
+
+function update(){
+ // movement
+ if(keys["ArrowRight"]) player.dx=player.speed;
+ else if(keys["ArrowLeft"]) player.dx=-player.speed;
+ else player.dx=0;
+
+ if(keys["Space"]&&player.onGround){player.dy=player.jump;player.onGround=false;}
+
+ player.dy+=player.gravity;
+ player.x+=player.dx;
+ player.y+=player.dy;
+ player.onGround=false;
+
+ // collision
+ for(let p of platforms){
+  if(player.x<p.x+p.w&&player.x+player.w>p.x&&player.y<p.y+p.h&&player.y+player.h>p.y){
+   if(player.dy>0){player.y=p.y-player.h;player.dy=0;player.onGround=true;}
+  }
+ }
+
+ // coins
+ for(let c of coins){
+  if(!c.taken && player.x<c.x+20 && player.x+player.w>c.x && player.y<c.y+20 && player.y+player.h>c.y){
+    c.taken=true; player.score++;
+  }
+ }
+
+ // enemies
+ for(let e of enemies){
+  e.x+=e.dir*1.5;
+  if(e.x<0||e.x>worldWidth-30) e.dir*=-1;
+
+  if(player.x<e.x+e.w && player.x+player.w>e.x && player.y<e.y+e.h && player.y+player.h>e.y){
+    if(player.dy>0){ e.x=-100; player.dy=-6; }
+    else{ reset(); }
+  }
+ }
+
+ // goal
+ if(player.x>goal.x){ alert("ゴール！スコア:"+player.score); reset(); }
+
+ // camera
+ cameraX=player.x-200;
+ if(cameraX<0)cameraX=0;
+ if(cameraX>worldWidth-canvas.width)cameraX=worldWidth-canvas.width;
+}
+
+function draw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ ctx.save();
+ ctx.translate(-cameraX,0);
+
+ // ground
+ ctx.fillStyle="#8d6e63";
+ for(let p of platforms){ctx.fillRect(p.x,p.y,p.w,p.h);} 
+
+ // coins
+ ctx.fillStyle="gold";
+ for(let c of coins){if(!c.taken)ctx.fillRect(c.x,c.y,15,15);} 
+
+ // enemies
+ ctx.fillStyle="#333";
+ for(let e of enemies){ctx.fillRect(e.x,e.y,e.w,e.h);} 
+
+ // goal
+ ctx.fillStyle="#00c853";
+ ctx.fillRect(goal.x,goal.y,goal.w,goal.h);
+
+ // player
+ ctx.fillStyle="#ff4081";
+ ctx.fillRect(player.x,player.y,player.w,player.h);
+
+ ctx.restore();
+
+ // UI
+ ctx.fillStyle="#000";
+ ctx.font="16px sans-serif";
+ ctx.fillText("スコア: "+player.score,20,20);
+}
+
+function reset(){ player.x=50;player.y=300;player.score=0; }
+
+function loop(){update();draw();requestAnimationFrame(loop);} 
+loop();
+</script>
+</body>
+</html>
